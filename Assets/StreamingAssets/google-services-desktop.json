@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "778258344983",
+    "project_id": "hacking-simulation-e17fb",
+    "storage_bucket": "hacking-simulation-e17fb.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:778258344983:android:0e82e4cdcf248540584052",
+        "android_client_info": {
+          "package_name": "com.Ozrensky.HackingSimulation"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "778258344983-2g6j5sfrq3d0dcl418qpc4emoe0abheh.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAu23ZYFzz4zGCvZOsbezvTQrxXzLsiz1k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "778258344983-2g6j5sfrq3d0dcl418qpc4emoe0abheh.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "778258344983-7aphmokmpegjvpu9oelcsaru8c4gcipc.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.Ozrensky.HackingSimulation"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

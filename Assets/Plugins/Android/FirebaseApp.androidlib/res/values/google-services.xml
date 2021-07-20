@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:keep="@string/gcm_defaultSenderId,@string/google_storage_bucket,@string/project_id,@string/google_api_key,@string/google_crash_reporting_api_key,@string/google_app_id,@string/default_web_client_id">
+  <string name="gcm_defaultSenderId" translatable="false">778258344983</string>
+  <string name="google_storage_bucket" translatable="false">hacking-simulation-e17fb.appspot.com</string>
+  <string name="project_id" translatable="false">hacking-simulation-e17fb</string>
+  <string name="google_api_key" translatable="false">AIzaSyAu23ZYFzz4zGCvZOsbezvTQrxXzLsiz1k</string>
+  <string name="google_crash_reporting_api_key" translatable="false">AIzaSyAu23ZYFzz4zGCvZOsbezvTQrxXzLsiz1k</string>
+  <string name="google_app_id" translatable="false">1:778258344983:android:0e82e4cdcf248540584052</string>
+  <string name="default_web_client_id" translatable="false">778258344983-2g6j5sfrq3d0dcl418qpc4emoe0abheh.apps.googleusercontent.com</string>
+</resources>
