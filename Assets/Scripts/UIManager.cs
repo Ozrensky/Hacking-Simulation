@@ -26,7 +26,15 @@ public class UIManager : MonoBehaviour
     public TextMeshProUGUI fb_xpText;
     public TextMeshProUGUI fb_nukeText;
     public TextMeshProUGUI fb_trapText;
+    [Header("--- ActionPanel ---")]
+    public GameObject actionPanel;
+    public TextMeshProUGUI a_difficultyText;
+    public TextMeshProUGUI a_detectionChanceText;
+    public Button hackButton;
+    public Button nukeButton;
+    public Button trapButton;
 
+    RectTransform actionPanelTransform;
     List<UIPanel> openedPanels = new List<UIPanel>();
 
     public class UIPanel
@@ -76,6 +84,11 @@ public class UIManager : MonoBehaviour
 
     public void DisableAllOpenedPanels()
     {
+        mm_mainMenuPanel.SetActive(false);
+        l_levelPanel.SetActive(false);
+        CloseMainMenuPanel();
+        CloseWinPanel();
+        l_losePanel.SetActive(false);
         foreach (UIPanel panel in openedPanels)
         {
             if (panel != null)
@@ -91,6 +104,7 @@ public class UIManager : MonoBehaviour
             Instance = this;
             DontDestroyOnLoad(this);
             ShowMainMenuPanel();
+            actionPanelTransform = actionPanel.GetComponent<RectTransform>();
         }
         else
         {
@@ -201,8 +215,51 @@ public class UIManager : MonoBehaviour
         CloseOpenedPanel(settingsPanel);
     }
 
-    public void GenerateNewLevel()
+    public void GenerateNewLevel(bool restart)
     {
-        GameManager.Instance.LoadLevel();
+        GameManager.Instance.LoadLevel(restart);
+    }
+
+    public void ShowActionPanel(Node n)
+    {
+        if (HackingController.Instance.GetClickedNode() == null || HackingController.Instance.GetClickedNode() != n)
+        {
+            HackingController.Instance.SetClickedNode(n);
+            a_difficultyText.text = n.hackingDifficulty.ToString();
+            a_detectionChanceText.text = n.chanceToTriggerTracer.ToString("0.0") + "%";
+            if (Mathf.Abs(n.trans.position.y - Camera.main.rect.yMin) < Mathf.Abs(n.trans.position.y - Camera.main.rect.yMax))
+                actionPanelTransform.position = new Vector2(n.trans.position.x, n.trans.position.y + n.sRenderer.bounds.size.y * 2f);
+            else
+                actionPanelTransform.position = new Vector2(n.trans.position.x, n.trans.position.y - n.sRenderer.bounds.size.y * 2f);
+            hackButton.onClick.RemoveAllListeners();
+            hackButton.onClick.AddListener(delegate { n.HackNode(); CloseActionPanel(); });
+            if (SaveController.currentSaveData.nukeCount == 0)
+            {
+                nukeButton.interactable = false;
+            }
+            else
+            {
+                nukeButton.interactable = true;
+                nukeButton.onClick.RemoveAllListeners();
+                nukeButton.onClick.AddListener(delegate { n.Nuke(); CloseActionPanel(); });
+            }
+            if (SaveController.currentSaveData.trapCount == 0)
+            {
+                trapButton.interactable = false;
+            }
+            else
+            {
+                trapButton.interactable = true;
+                trapButton.onClick.RemoveAllListeners();
+                trapButton.onClick.AddListener(delegate { n.TrapNode(); CloseActionPanel(); });
+            }
+            actionPanel.SetActive(true);
+        }
+    }
+
+    public void CloseActionPanel()
+    {
+        HackingController.Instance.SetClickedNode(null);
+        actionPanel.SetActive(false);
     }
 }

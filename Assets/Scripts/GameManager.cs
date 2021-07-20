@@ -47,22 +47,24 @@ public class GameManager : MonoBehaviour
         HackingController.Instance.LoadData();
     }
 
-    public void LoadLevel()
+    public void LoadLevel(bool restart)
     {
-        StartCoroutine(LoadingCoroutine());
+        StartCoroutine(LoadingCoroutine(restart));
     }
 
-    IEnumerator LoadingCoroutine()
+    IEnumerator LoadingCoroutine(bool restart)
     {
         loading = true;
         Time.timeScale = 1;
         UIManager.Instance.OpenLoadingScreen();
         UIManager.Instance.ToggleLevelPanel(false);
         UIManager.Instance.CloseMainMenuPanel();
-        HackingController.Instance.SetupLevel();
+        UIManager.Instance.CloseWinPanel();
+        HackingController.Instance.SetupLevel(restart);
         yield return new WaitWhile(()=> !HackingController.setupDone);
         yield return new WaitForSeconds(1f);
         UIManager.Instance.l_levelPanel.SetActive(true);
+        UIManager.Instance.UpdateLevelUI();
         UIManager.Instance.CloseLoadingScreen();
         gameState = GameState.play;
         yield return null;
@@ -70,7 +72,7 @@ public class GameManager : MonoBehaviour
 
     public void LevelFinished()
     {
-        
+        UIManager.Instance.ShowWinPanel();
     }
 
     public void ExitGame()

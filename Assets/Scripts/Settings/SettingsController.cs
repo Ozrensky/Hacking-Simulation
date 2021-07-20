@@ -10,7 +10,7 @@ public class SettingsController : MonoBehaviour
     public TextMeshProUGUI sfxText;
     public TMP_InputField nodeCountInputField;
     public TMP_InputField firewallCountInputField;
-    public TMP_InputField trasureCountInputField;
+    public TMP_InputField treasureCountInputField;
     public TMP_InputField spamCountInputField;
     public TMP_InputField spamDecreaseInputField;
     public TMP_InputField trapDelayInputField;
@@ -30,15 +30,17 @@ public class SettingsController : MonoBehaviour
         sfxBtn.onClick.AddListener(() => ToggleSfx());
         confirmBtn.onClick.AddListener(() => ConfirmChanges());
         cancelBtn.onClick.AddListener(() => CancelChanges());
-        nodeCountInputField.onValueChanged.AddListener(delegate {
+        nodeCountInputField.onEndEdit.AddListener(delegate {
+            if (nodeCountInputField.text == "" || int.Parse(nodeCountInputField.text) == 0)
+                nodeCountInputField.text = "1";
             settingsData.nodeCount = int.Parse(nodeCountInputField.text);
             CheckFieldValue(firewallCountInputField, delegate { settingsData.firewallCount = int.Parse(firewallCountInputField.text); });
-            CheckFieldValue(trasureCountInputField, delegate { settingsData.treasureCount = int.Parse(trasureCountInputField.text); });
             CheckFieldValue(spamCountInputField, delegate { settingsData.spamCount = int.Parse(spamCountInputField.text); });
+            CheckFieldValue(treasureCountInputField, delegate { settingsData.treasureCount = int.Parse(treasureCountInputField.text); });
         });
-        firewallCountInputField.onValueChanged.AddListener(delegate { CheckFieldValue(firewallCountInputField, delegate { settingsData.firewallCount = int.Parse(firewallCountInputField.text); }); });
-        trasureCountInputField.onValueChanged.AddListener(delegate { CheckFieldValue(trasureCountInputField, delegate { settingsData.treasureCount = int.Parse(trasureCountInputField.text); }); });
-        spamCountInputField.onValueChanged.AddListener(delegate { CheckFieldValue(spamCountInputField, delegate { settingsData.spamCount = int.Parse(spamCountInputField.text); }); });
+        firewallCountInputField.onEndEdit.AddListener(delegate { CheckFieldValue(firewallCountInputField, delegate { settingsData.firewallCount = int.Parse(firewallCountInputField.text); }); });
+        treasureCountInputField.onEndEdit.AddListener(delegate { CheckFieldValue(treasureCountInputField, delegate { settingsData.treasureCount = int.Parse(treasureCountInputField.text); }); });
+        spamCountInputField.onEndEdit.AddListener(delegate { CheckFieldValue(spamCountInputField, delegate { settingsData.spamCount = int.Parse(spamCountInputField.text); }); });
     }
 
     public void LoadData()
@@ -56,7 +58,7 @@ public class SettingsController : MonoBehaviour
             settingsData = HackingController.Instance.settings.Copy();
             nodeCountInputField.text = settingsData.nodeCount.ToString();
             firewallCountInputField.text = settingsData.firewallCount.ToString();
-            trasureCountInputField.text = settingsData.treasureCount.ToString();
+            treasureCountInputField.text = settingsData.treasureCount.ToString();
             spamCountInputField.text = settingsData.spamCount.ToString();
             spamDecreaseInputField.text = settingsData.spamDecrease.ToString();
             trapDelayInputField.text = settingsData.trapDelay.ToString();
@@ -70,11 +72,12 @@ public class SettingsController : MonoBehaviour
         settingsData.spamCount = int.Parse(spamCountInputField.text);
         settingsData.spamDecrease = float.Parse(spamDecreaseInputField.text);
         settingsData.trapDelay = float.Parse(trapDelayInputField.text);
+        settingsData.treasureCount = int.Parse(treasureCountInputField.text);
     }
 
     void CheckFieldValue(TMP_InputField inputField, System.Action setFieldValue = null)
     {
-        if (inputField.text != "")
+        if (inputField.text != "" && inputField.text != "0")
         {
             if (setFieldValue != null)
                 setFieldValue.Invoke();
@@ -88,7 +91,10 @@ public class SettingsController : MonoBehaviour
         }
         else
         {
-            inputField.text = 0.ToString();
+            if (inputField == treasureCountInputField)
+                inputField.text = "1";
+            else
+                inputField.text = "0";
         }
     }
 
@@ -123,6 +129,7 @@ public class SettingsController : MonoBehaviour
         SaveController.currentSaveData.music = music;
         SaveController.currentSaveData.sfx = sfx;
         SaveController.currentSaveData.nodeCount = int.Parse(nodeCountInputField.text);
+        SaveController.currentSaveData.treasureCount = int.Parse(treasureCountInputField.text);
         SaveController.currentSaveData.firewallCount = int.Parse(firewallCountInputField.text);
         SaveController.currentSaveData.spamCount = int.Parse(spamCountInputField.text);
         SaveController.currentSaveData.spamDecrease = float.Parse(spamDecreaseInputField.text);

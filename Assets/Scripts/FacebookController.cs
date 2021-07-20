@@ -56,6 +56,7 @@ public class FacebookController : MonoBehaviour
             SaveController.currentSaveData.trapCount += trapAmount;
             SaveController.currentSaveData.nukeCount += nukeAmount;
             SaveController.currentSaveData.xpAmount += xpAmount;
+            UIManager.Instance.UpdateLevelUI();
             SaveController.WriteSaveData();
             fbButtonObject.SetActive(false);
             UIManager.Instance.OpenFbRewardPanel(xpAmount, nukeAmount, trapAmount);
