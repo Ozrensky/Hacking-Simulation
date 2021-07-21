@@ -74,7 +74,7 @@ public class HackingController : MonoBehaviour
             startNode = null;
             foreach (Node n in spawnedNodes)
             {
-                foreach (LineRenderer lr in n.ReturnLineRenderers())
+                foreach (LineRenderer lr in n.GetLineRenderers())
                 {
                     ReturnLineRenderer(lr);
                 }
@@ -161,24 +161,13 @@ public class HackingController : MonoBehaviour
                     RaycastHit2D hit = Physics2D.Linecast(node.trans.position, n.trans.position);
                     if (!hit || hit.collider.tag != "Node")
                     {
-                        LineRenderer lr;
-                        if (lrPool.Count > 0)
-                        {
-                            lr = lrPool[lrPool.Count - 1];
-                            lrPool.RemoveAt(lrPool.Count - 1);
-                        }
-                        else
-                        {
-                            GameObject lrObject = Instantiate(lrPrefab, nodesHolder);
-                            lr = lrObject.GetComponent<LineRenderer>();
-                        }
+                        LineRenderer lr = GetLineRenderer();
                         lr.enabled = true;
-                        lr.startWidth = 0.1f;
-                        lr.endWidth = 0.1f;
                         lr.SetPosition(0, node.trans.position);
                         lr.SetPosition(1, n.trans.position);
                         lr.startColor = Color.cyan;
                         lr.endColor = Color.cyan;
+                        lr.sortingOrder = -2;
                         node.connections.Add(new Node.Connection() { connectedNode = n, lineRenderer = lr });
                         n.connections.Add(new Node.Connection() { connectedNode = node, lineRenderer = lr });
                         AddSpawnedLine(lr, new List<Node>() { node, n });
@@ -189,6 +178,11 @@ public class HackingController : MonoBehaviour
             node.ToggleCollider(true);
         }
         FilterConnections();
+        yield return new WaitForSeconds(0.1f);
+        foreach (Node f in firewallNodes)
+        {
+            f.TriggerTracer();
+        }
         setupDone = true;
     }
 
@@ -295,6 +289,24 @@ public class HackingController : MonoBehaviour
         return false;
     }
     #endregion
+
+    public LineRenderer GetLineRenderer()
+    {
+        LineRenderer lr;
+        if (lrPool.Count > 0)
+        {
+            lr = lrPool[lrPool.Count - 1];
+            lrPool.RemoveAt(lrPool.Count - 1);
+        }
+        else
+        {
+            GameObject lrObject = Instantiate(lrPrefab, nodesHolder);
+            lr = lrObject.GetComponent<LineRenderer>();
+        }
+        lr.startWidth = 0.1f;
+        lr.endWidth = 0.1f;
+        return lr;
+    }
 
     public void ReturnLineRenderer(LineRenderer lr)
     {

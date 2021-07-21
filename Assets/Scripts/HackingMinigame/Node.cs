@@ -25,6 +25,7 @@ public class Node : MonoBehaviour
     [SerializeField] UnityEngine.Events.UnityEvent onHackedEvent;
     [SerializeField] UnityEngine.Events.UnityEvent onResetEvent;
 
+    public List<LineRenderer> hackLrs = new List<LineRenderer>();
     public List<Connection> connections = new List<Connection>();
     public Type type;
     public State state = State.locked;
@@ -54,6 +55,11 @@ public class Node : MonoBehaviour
         StopCoroutines();
         hackingObject.SetActive(false);
         ToggleSelection(false);
+        foreach (LineRenderer lr in hackLrs)
+        {
+            HackingController.Instance.ReturnLineRenderer(lr);
+        }
+        hackLrs.Clear();
     }
 
     public void StopCoroutines()
@@ -106,15 +112,19 @@ public class Node : MonoBehaviour
             coll.enabled = value;
     }
 
-    public List<LineRenderer> ReturnLineRenderers()
+    public List<LineRenderer> GetLineRenderers()
     {
         List<LineRenderer> lr = new List<LineRenderer>();
         foreach (Connection c in connections)
         {
             lr.Add(c.lineRenderer);
         }
-
         return lr;
+    }
+
+    public List<LineRenderer> GetHackLineRenderers()
+    {
+        return hackLrs;
     }
 
     public void SetupNode()
@@ -138,14 +148,17 @@ public class Node : MonoBehaviour
                 break;
         }
 
-        RandomizeDifficulty();
+        if (type != Type.start)
+            RandomizeDifficulty();
+        else
+            hackingDifficulty = 0;
     }
 
     public void TriggerTracer()
     {
         if (!HackingController.tracerActive)
         {
-
+            gameObject.AddComponent<TracerController>().CalculateTracerPath(this, new TracerController.Path());
         }
     }
 
@@ -212,8 +225,17 @@ public class Node : MonoBehaviour
 
     IEnumerator HackCoroutine(bool isInstant = false)
     {
+        LineRenderer lr = HackingController.Instance.GetLineRenderer();
+        lr.startColor = Color.green;
+        lr.endColor = Color.green;
+        lr.SetPosition(0, GetNeighbourHackedNode().trans.position);
+        Vector3 lerpPosition = trans.position;
+        lr.sortingOrder = -1;
+        lr.enabled = true;
+        hackLrs.Add(lr);
         if (!isInstant)
         {
+            lr.SetPosition(1, lr.GetPosition(0));
             hackingObject.SetActive(true);
             float elapsed = 0;
             float duration = hackingDifficulty * HackingController.Instance.baseHackTime;
@@ -222,11 +244,16 @@ public class Node : MonoBehaviour
                 {
                     elapsed += Time.deltaTime;
                     hackingCounterText.text = (elapsed / duration * 100).ToString("0.0") + "%";
+                    lr.SetPosition(1, Vector3.Lerp(lr.GetPosition(0), lerpPosition, elapsed / duration));
                     yield return null;
                 }
             }
             hackingObject.SetActive(false);
             HackingController.hackingActive = false;
+        }
+        else
+        {
+            lr.SetPosition(1, lerpPosition);
         }
         SetColor(hackedColor);
         state = State.hacked;
@@ -244,6 +271,17 @@ public class Node : MonoBehaviour
             HackingController.Instance.RandomizeNodesDifficulties();
         }
         hackCoroutine = null;
+    }
+
+    Node GetNeighbourHackedNode()
+    {
+        foreach (Connection c in connections)
+        {
+            if (c.connectedNode.state == State.hacked || c.connectedNode.type == Type.start)
+                return c.connectedNode;
+        }
+
+        return null;
     }
 
     public void UnlockNode()
