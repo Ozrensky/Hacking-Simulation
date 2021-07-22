@@ -19,22 +19,32 @@ public class HackingController : MonoBehaviour
     Node startNode;
     Node clickedNode;
     int treasuresLeft = 0;
+    int firewallsLeft = 0;
 
     //Pools
     public List<Node> nodesPool = new List<Node>();
     public List<LineRenderer> lrPool = new List<LineRenderer>();
 
+    //Spawned objects
     public List<Node> spawnedNodes = new List<Node>();
     public List<Node> firewallNodes = new List<Node>();
     public List<ConnectionData> spawnedLr = new List<ConnectionData>();
 
     public Coroutine spawnCoroutine = null;
     public static bool setupDone = false;
-    public static bool tracerActive = false;
+    public static bool tracersActive = false;
     public static bool hackingActive = false;
+    public static bool spamActive = false;
+    public static bool minigameFinished = false;
     public GameSettings settings = new GameSettings();
     public static HackingController Instance;
 
+    //events
+    public delegate void FinishAction();
+    public static event FinishAction OnWon;
+    public static event FinishAction OnLost;
+
+    //class holding data needed by hacking minigame
     [System.Serializable]
     public class GameSettings
     {
@@ -51,6 +61,7 @@ public class HackingController : MonoBehaviour
         }
     }
 
+    //class holding lr and nodes that it is connecting
     [System.Serializable]
     public class ConnectionData
     {
@@ -65,13 +76,16 @@ public class HackingController : MonoBehaviour
             spawnRenderer = nodesHolder.GetComponent<SpriteRenderer>();
     }
 
+    //sets up a level, parameter restart tells method to just reset already generated level or to generate a new one
     public void SetupLevel(bool restart)
     {
         setupDone = false;
         RestartLevel();
+        //generating new level
         if (!restart)
         {
             startNode = null;
+            //if there are nodes used in previous level return them to the pool
             foreach (Node n in spawnedNodes)
             {
                 foreach (LineRenderer lr in n.GetLineRenderers())
@@ -85,18 +99,31 @@ public class HackingController : MonoBehaviour
             spawnedLr.Clear();
             CreateNodes();
             SpawnNodes();
-        }  
+        }
+        else
+        {
+            startNode.UnlockNode();
+            startNode.UnlockConnectedNodes();
+            setupDone = true;
+        }
     }
 
+    //basic restart level commands
     void RestartLevel()
     {
         foreach (Node n in spawnedNodes)
         {
             n.Reset();
         }
+        minigameFinished = false;
+        tracersActive = false;
+        hackingActive = false;
+        spamActive = false;
         treasuresLeft = settings.treasureCount;
+        firewallsLeft = settings.firewallCount;
     }
 
+    //Gets nodes from pool, positions them in nodes holder, sets up nodes, generenates line renderers and filter them
     void SpawnNodes()
     {
         StartCoroutine(Spawn());
@@ -104,13 +131,17 @@ public class HackingController : MonoBehaviour
 
     IEnumerator Spawn()
     {
+        //calculating data nodes
         int dataNodesCount = settings.nodeCount - settings.treasureCount - settings.spamCount - settings.firewallCount;
+        //getting copy of settings just for counting nodes left to position
         GameSettings countsCopy = settings.Copy();
+        //positioning nodes and setting them up
         for (int i = 0; i < settings.nodeCount + 1; i++)
         {
             Node node = nodesPool[nodesPool.Count - 1 - i];
             node.Reset();
             node.gameObject.SetActive(true);
+            //finding position for a node
             do
             {
                 yield return null;
@@ -122,12 +153,6 @@ public class HackingController : MonoBehaviour
                 node.type = Node.Type.start;
                 node.UnlockNode();
                 startNode = node;
-            }
-            else if (countsCopy.firewallCount > 0)
-            {
-                countsCopy.firewallCount--;
-                node.type = Node.Type.firewall;
-                firewallNodes.Add(node);
             }
             else if (countsCopy.spamCount > 0)
             {
@@ -144,12 +169,20 @@ public class HackingController : MonoBehaviour
                 dataNodesCount--;
                 node.type = Node.Type.data;
             }
+            else if (countsCopy.firewallCount > 0)
+            {
+                countsCopy.firewallCount--;
+                node.type = Node.Type.firewall;
+                firewallNodes.Add(node);
+            }
             node.SetupNode();
             spawnedNodes.Add(node);
         }
 
         yield return new WaitForSeconds(0.1f);
 
+        //generating node connections
+        //connecting nodes that have unobsracted line between them 
         foreach (Node node in spawnedNodes)
         {
             node.ToggleCollider(false);
@@ -167,7 +200,7 @@ public class HackingController : MonoBehaviour
                         lr.SetPosition(1, n.trans.position);
                         lr.startColor = Color.cyan;
                         lr.endColor = Color.cyan;
-                        lr.sortingOrder = -2;
+                        lr.sortingOrder = -3;
                         node.connections.Add(new Node.Connection() { connectedNode = n, lineRenderer = lr });
                         n.connections.Add(new Node.Connection() { connectedNode = node, lineRenderer = lr });
                         AddSpawnedLine(lr, new List<Node>() { node, n });
@@ -177,15 +210,13 @@ public class HackingController : MonoBehaviour
             }
             node.ToggleCollider(true);
         }
+        //removing intersecting lines
         FilterConnections();
         yield return new WaitForSeconds(0.1f);
-        foreach (Node f in firewallNodes)
-        {
-            f.TriggerTracer();
-        }
         setupDone = true;
     }
 
+    //adds spawned line to spawned line holder and sorts them by lenght
     void AddSpawnedLine(LineRenderer lr, List<Node> nodes)
     {
         float distance = Vector2.Distance(lr.GetPosition(0), lr.GetPosition(1));
@@ -215,6 +246,7 @@ public class HackingController : MonoBehaviour
         }  
     }
 
+    //removing intersecting lines, longest lines have higher chance to get removed
     void FilterConnections()
     {
         for (int i = 0; i < spawnedLr.Count; i++)
@@ -233,7 +265,6 @@ public class HackingController : MonoBehaviour
                     {
                         ReturnLineRenderer(spawnedLr[i].lineRenderer);
                         removedLr.Add(spawnedLr[i]);
-                        spawnedLr[i].lineRenderer.name += "!!!!!" + spawnedLr[j].lineRenderer.name;
                         spawnedLr[i].nodes[0].RemoveConnection(spawnedLr[i].lineRenderer);
                         spawnedLr[i].nodes[1].RemoveConnection(spawnedLr[i].lineRenderer);
                         break;
@@ -245,9 +276,11 @@ public class HackingController : MonoBehaviour
         {
             spawnedLr.Remove(lr);
         }
+        //unlocking nodes connected to the start node
         startNode.UnlockConnectedNodes();
     }
 
+    //methods calculating if lines are intersected
     #region Line Intersection
     bool IsOnSegment(Vector2 p, Vector2 q, Vector2 r)
     {
@@ -290,6 +323,7 @@ public class HackingController : MonoBehaviour
     }
     #endregion
 
+    //returns lr from lr pool
     public LineRenderer GetLineRenderer()
     {
         LineRenderer lr;
@@ -308,6 +342,7 @@ public class HackingController : MonoBehaviour
         return lr;
     }
 
+    //returns lr to lr pool
     public void ReturnLineRenderer(LineRenderer lr)
     {
         if (!lrPool.Contains(lr))
@@ -317,6 +352,7 @@ public class HackingController : MonoBehaviour
         }
     }
 
+    //calculates if node is overlapping any other node
     bool IsNodeOverlapping(Node checkNode)
     {
         foreach (Node node in spawnedNodes)
@@ -341,6 +377,7 @@ public class HackingController : MonoBehaviour
         return new Vector2(Random.Range(spawnRenderer.bounds.min.x + nodeHeight / 2, spawnRenderer.bounds.max.x - nodeHeight / 2), Random.Range(spawnRenderer.bounds.min.y + nodeWidth / 2, spawnRenderer.bounds.max.y - nodeWidth / 2));
     }
 
+    //create nodes if there are less in pool than needed currently
     void CreateNodes()
     {
         if (settings.nodeCount + 1 > nodesPool.Count)
@@ -360,28 +397,36 @@ public class HackingController : MonoBehaviour
         }
     }
 
-    public void ActivateTracer()
+    //activates all firewall tracers
+    public void ActivateTracers()
     {
-        if (!tracerActive)
+        if (!tracersActive)
         {
-            tracerActive = true;
+            tracersActive = true;
+            UIManager.Instance.UpdateLevelUI();
             foreach (Node n in firewallNodes)
             {
-
+                if (n.state != Node.State.hacked)
+                {
+                    TracerController tc = n.gameObject.AddComponent<TracerController>();
+                    tc.FindShortestPath(n, startNode);
+                }
             }
         }
     }
 
+    //loading saved data
     public void LoadData()
     {
-        settings.firewallCount = SaveController.currentSaveData.firewallCount;
-        settings.spamCount = SaveController.currentSaveData.spamCount;
-        settings.spamDecrease = SaveController.currentSaveData.spamDecrease;
-        settings.nodeCount = SaveController.currentSaveData.nodeCount;
-        settings.trapDelay = SaveController.currentSaveData.trapDelay;
-        settings.treasureCount = SaveController.currentSaveData.treasureCount;
+        settings.firewallCount = FirebaseController.Instance.FirewallCount;
+        settings.spamCount = FirebaseController.Instance.SpamCount;
+        settings.spamDecrease = FirebaseController.Instance.SpamDecrease;
+        settings.nodeCount = FirebaseController.Instance.NodeCount;
+        settings.trapDelay = FirebaseController.Instance.TrapDelay;
+        settings.treasureCount = FirebaseController.Instance.TreasureCount;
     }
 
+    //randomizes node's difficulties
     public void RandomizeNodesDifficulties()
     {
         foreach (Node n in spawnedNodes)
@@ -393,6 +438,7 @@ public class HackingController : MonoBehaviour
         }
     }
 
+    //setting currently selected node
     public void SetClickedNode(Node n)
     {
         if (clickedNode != null)
@@ -404,21 +450,22 @@ public class HackingController : MonoBehaviour
         clickedNode = n;
     }
 
+    //returns currently selected node
     public Node GetClickedNode()
     {
         return clickedNode;
     }
 
+    //calculates random treasure reward and checks for a win
     public void TreasureHacked()
     {
         int randomReward = Random.Range(0, 3);
         switch (randomReward)
         {
-            case 0: SaveController.currentSaveData.xpAmount += Random.Range((int)xpRewardRange.x, (int)xpRewardRange.y + 1); break;
-            case 1: SaveController.currentSaveData.nukeCount += Random.Range((int)nukeRewardRange.x, (int)nukeRewardRange.y + 1); break;
-            case 2: SaveController.currentSaveData.trapCount += Random.Range((int)trapRewardRange.x, (int)trapRewardRange.y + 1); break;
+            case 0: FirebaseController.Instance.XpAmount += Random.Range((int)xpRewardRange.x, (int)xpRewardRange.y + 1); break;
+            case 1: FirebaseController.Instance.NukeCount += Random.Range((int)nukeRewardRange.x, (int)nukeRewardRange.y + 1); break;
+            case 2: FirebaseController.Instance.TrapCount += Random.Range((int)trapRewardRange.x, (int)trapRewardRange.y + 1); break;
         }
-        SaveController.WriteSaveData();
         UIManager.Instance.UpdateLevelUI();
         treasuresLeft--;
         if (treasuresLeft == 0)
@@ -427,13 +474,29 @@ public class HackingController : MonoBehaviour
         }
     }
 
+    //checks for a win by hacking all firewalls
+    public void FirewallHacked()
+    {
+        firewallsLeft--;
+        if (firewallsLeft == 0)
+        {
+            MinigameWon();
+        }
+    }
+
     void MinigameWon()
     {
-        foreach (Node n in spawnedNodes)
-        {
-            n.StopCoroutines();
-        }
-
+        OnWon();
+        minigameFinished = true;
+        AudioController.Instance.PlayWin();
         UIManager.Instance.ShowWinPanel();
+    }
+
+    public void MinigameFailed()
+    {
+        OnLost();
+        minigameFinished = true;
+        AudioController.Instance.PlayLose();
+        UIManager.Instance.ShowLosePanel();
     }
 }

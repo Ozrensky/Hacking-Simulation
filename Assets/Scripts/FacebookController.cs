@@ -53,11 +53,10 @@ public class FacebookController : MonoBehaviour
             // Print current access token's User ID
             Debug.Log(aToken.UserId);
             Debug.Log("Facebook login successful");
-            SaveController.currentSaveData.trapCount += trapAmount;
-            SaveController.currentSaveData.nukeCount += nukeAmount;
-            SaveController.currentSaveData.xpAmount += xpAmount;
+            FirebaseController.Instance.TrapCount += trapAmount;
+            FirebaseController.Instance.NukeCount += nukeAmount;
+            FirebaseController.Instance.XpAmount += xpAmount;
             UIManager.Instance.UpdateLevelUI();
-            SaveController.WriteSaveData();
             fbButtonObject.SetActive(false);
             UIManager.Instance.OpenFbRewardPanel(xpAmount, nukeAmount, trapAmount);
         }

@@ -9,6 +9,8 @@ public class AudioPlayer : MonoBehaviour
     public AudioClip audioClip;
     public int musicClipIndex;
     public bool playOnAwake = true;
+    [Range(0, 1)]
+    public float volume = 1;
     public bool loop = false;
 
     [HideInInspector]
@@ -21,7 +23,7 @@ public class AudioPlayer : MonoBehaviour
 
     IEnumerator SetupPlayerCor()
     {
-        yield return new WaitUntil(() => SaveController.currentSaveData != null);
+        yield return new WaitUntil(() => FirebaseController.currentSaveData != null);
 
         SetupPlayer();
     }
@@ -34,10 +36,11 @@ public class AudioPlayer : MonoBehaviour
             source = gameObject.AddComponent<AudioSource>();
             source.loop = loop;
             source.playOnAwake = playOnAwake;
+            source.volume = volume;
             if (audioType == AudioController.SoundType.sfx)
             {
                 source.clip = audioClip;
-                if (!SaveController.currentSaveData.sfx)
+                if (!FirebaseController.Instance.Sfx)
                 {
                     source.volume = 0;
                 }
@@ -45,7 +48,7 @@ public class AudioPlayer : MonoBehaviour
             else if (audioType == AudioController.SoundType.music && musicClipIndex < AudioController.Instance.musicClips.Count)
             {
                 source.clip = AudioController.Instance.musicClips[musicClipIndex];
-                if (!SaveController.currentSaveData.music)
+                if (!FirebaseController.Instance.Music)
                 {
                     source.volume = 0;
                 }

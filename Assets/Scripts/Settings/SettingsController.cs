@@ -23,6 +23,7 @@ public class SettingsController : MonoBehaviour
     bool sfx;
     HackingController.GameSettings settingsData = new HackingController.GameSettings();
 
+    //loading data and adding listeners to buttons and input fields to filter input
     private void Start()
     {
         LoadData();
@@ -31,9 +32,11 @@ public class SettingsController : MonoBehaviour
         confirmBtn.onClick.AddListener(() => ConfirmChanges());
         cancelBtn.onClick.AddListener(() => CancelChanges());
         nodeCountInputField.onEndEdit.AddListener(delegate {
-            if (nodeCountInputField.text == "" || int.Parse(nodeCountInputField.text) == 0)
+            if (nodeCountInputField.text == "")
                 nodeCountInputField.text = "1";
             settingsData.nodeCount = int.Parse(nodeCountInputField.text);
+            settingsData.nodeCount = Mathf.Clamp(settingsData.nodeCount, 1, 30);
+            nodeCountInputField.text = settingsData.nodeCount.ToString();
             CheckFieldValue(firewallCountInputField, delegate { settingsData.firewallCount = int.Parse(firewallCountInputField.text); });
             CheckFieldValue(spamCountInputField, delegate { settingsData.spamCount = int.Parse(spamCountInputField.text); });
             CheckFieldValue(treasureCountInputField, delegate { settingsData.treasureCount = int.Parse(treasureCountInputField.text); });
@@ -47,14 +50,14 @@ public class SettingsController : MonoBehaviour
     {
         if (HackingController.Instance != null)
         {
-            if (music = SaveController.currentSaveData.music)
+            if (music = FirebaseController.Instance.Music)
                 musicText.text = "On";
             else
                 musicText.text = "Off";
-            if (sfx = SaveController.currentSaveData.sfx)
-                musicText.text = "On";
+            if (sfx = FirebaseController.Instance.Sfx)
+                sfxText.text = "On";
             else
-                musicText.text = "Off";
+                sfxText.text = "Off";
             settingsData = HackingController.Instance.settings.Copy();
             nodeCountInputField.text = settingsData.nodeCount.ToString();
             firewallCountInputField.text = settingsData.firewallCount.ToString();
@@ -65,16 +68,7 @@ public class SettingsController : MonoBehaviour
         }
     }
 
-    void UpdateSettingsData()
-    {
-        settingsData.nodeCount = int.Parse(nodeCountInputField.text);
-        settingsData.firewallCount = int.Parse(firewallCountInputField.text);
-        settingsData.spamCount = int.Parse(spamCountInputField.text);
-        settingsData.spamDecrease = float.Parse(spamDecreaseInputField.text);
-        settingsData.trapDelay = float.Parse(trapDelayInputField.text);
-        settingsData.treasureCount = int.Parse(treasureCountInputField.text);
-    }
-
+    //checking if input field values are valid
     void CheckFieldValue(TMP_InputField inputField, System.Action setFieldValue = null)
     {
         if (inputField.text != "" && inputField.text != "0")
@@ -116,25 +110,25 @@ public class SettingsController : MonoBehaviour
             sfxText.text = "Off";
     }
 
+    //confirming and saving changes
     public void ConfirmChanges()
     {
-        if (music && AudioController.Instance)
+        if (!music && AudioController.Instance)
             AudioController.Instance.DisableMusic();
         else if (AudioController.Instance)
             AudioController.Instance.EnableMusic();
-        if (sfx && AudioController.Instance)
+        if (!sfx && AudioController.Instance)
             AudioController.Instance.DisableSFX();
         else if (AudioController.Instance)
             AudioController.Instance.EnableSFX();
-        SaveController.currentSaveData.music = music;
-        SaveController.currentSaveData.sfx = sfx;
-        SaveController.currentSaveData.nodeCount = int.Parse(nodeCountInputField.text);
-        SaveController.currentSaveData.treasureCount = int.Parse(treasureCountInputField.text);
-        SaveController.currentSaveData.firewallCount = int.Parse(firewallCountInputField.text);
-        SaveController.currentSaveData.spamCount = int.Parse(spamCountInputField.text);
-        SaveController.currentSaveData.spamDecrease = float.Parse(spamDecreaseInputField.text);
-        SaveController.currentSaveData.trapDelay = float.Parse(trapDelayInputField.text);
-        SaveController.WriteSaveData();
+        FirebaseController.Instance.Music = music;
+        FirebaseController.Instance.Sfx = sfx;
+        FirebaseController.Instance.NodeCount = int.Parse(nodeCountInputField.text);
+        FirebaseController.Instance.TreasureCount = int.Parse(treasureCountInputField.text);
+        FirebaseController.Instance.FirewallCount = int.Parse(firewallCountInputField.text);
+        FirebaseController.Instance.SpamCount = int.Parse(spamCountInputField.text);
+        FirebaseController.Instance.SpamDecrease = float.Parse(spamDecreaseInputField.text);
+        FirebaseController.Instance.TrapDelay = float.Parse(trapDelayInputField.text);
         if (HackingController.Instance)
             HackingController.Instance.LoadData();
         UIManager.Instance.CloseSettingsPanel();

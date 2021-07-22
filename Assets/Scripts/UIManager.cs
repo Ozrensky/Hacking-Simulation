@@ -22,6 +22,8 @@ public class UIManager : MonoBehaviour
     public TextMeshProUGUI l_xpCounterText;
     public TextMeshProUGUI l_nukeCounterText;
     public TextMeshProUGUI l_trapCounterText;
+    public TextMeshProUGUI l_spamActiveText;
+    public TextMeshProUGUI l_tracersActiveText;
     [Header("--- Facebook Reward Elements ---")]
     public TextMeshProUGUI fb_xpText;
     public TextMeshProUGUI fb_nukeText;
@@ -88,7 +90,7 @@ public class UIManager : MonoBehaviour
         l_levelPanel.SetActive(false);
         CloseMainMenuPanel();
         CloseWinPanel();
-        l_losePanel.SetActive(false);
+        CloseLosePanel();
         foreach (UIPanel panel in openedPanels)
         {
             if (panel != null)
@@ -125,9 +127,11 @@ public class UIManager : MonoBehaviour
 
     public void UpdateLevelUI()
     {
-        l_nukeCounterText.text = SaveController.currentSaveData.nukeCount.ToString();
-        l_trapCounterText.text = SaveController.currentSaveData.trapCount.ToString();
-        l_xpCounterText.text = SaveController.currentSaveData.xpAmount.ToString();
+        l_nukeCounterText.text = FirebaseController.Instance.NukeCount.ToString();
+        l_trapCounterText.text = FirebaseController.Instance.TrapCount.ToString();
+        l_xpCounterText.text = FirebaseController.Instance.XpAmount.ToString();
+        l_tracersActiveText.text = HackingController.tracersActive.ToString();
+        l_spamActiveText.text = HackingController.spamActive.ToString();
     }
 
     public void ShowWinPanel()
@@ -138,6 +142,16 @@ public class UIManager : MonoBehaviour
     public void CloseWinPanel()
     {
         l_winPanel.SetActive(false);
+    }
+
+    public void ShowLosePanel()
+    {
+        l_losePanel.SetActive(true);
+    }
+
+    public void CloseLosePanel()
+    {
+        l_losePanel.SetActive(false);
     }
 
     public void ShowMainMenuPanel()
@@ -220,6 +234,7 @@ public class UIManager : MonoBehaviour
         GameManager.Instance.LoadLevel(restart);
     }
 
+    //show and set values in action panel
     public void ShowActionPanel(Node n)
     {
         if (HackingController.Instance.GetClickedNode() == null || HackingController.Instance.GetClickedNode() != n)
@@ -233,7 +248,7 @@ public class UIManager : MonoBehaviour
                 actionPanelTransform.position = new Vector2(n.trans.position.x, n.trans.position.y - n.sRenderer.bounds.size.y * 2f);
             hackButton.onClick.RemoveAllListeners();
             hackButton.onClick.AddListener(delegate { n.HackNode(); CloseActionPanel(); });
-            if (SaveController.currentSaveData.nukeCount == 0)
+            if (FirebaseController.Instance.NukeCount == 0)
             {
                 nukeButton.interactable = false;
             }
@@ -243,7 +258,7 @@ public class UIManager : MonoBehaviour
                 nukeButton.onClick.RemoveAllListeners();
                 nukeButton.onClick.AddListener(delegate { n.Nuke(); CloseActionPanel(); });
             }
-            if (SaveController.currentSaveData.trapCount == 0)
+            if (FirebaseController.Instance.TrapCount == 0)
             {
                 trapButton.interactable = false;
             }

@@ -8,8 +8,6 @@ public class GameManager : MonoBehaviour
     public static GameManager Instance;
     public static GameState gameState = GameState.idle;
     public static bool loading = false;
-
-    public enum LevelDifficulty { easy, medium, hard }
     public enum GameState { idle, play, pause }
 
     private void Awake()
@@ -39,9 +37,7 @@ public class GameManager : MonoBehaviour
 
     IEnumerator GameStartSetup()
     {
-        SaveController.LoadSaveData();
-
-        yield return new WaitUntil(() => SaveController.currentSaveData != null);
+        yield return new WaitUntil(() => FirebaseController.currentSaveData != null);
 
         AudioController.Instance.SetupSources();
         HackingController.Instance.LoadData();
@@ -49,6 +45,7 @@ public class GameManager : MonoBehaviour
 
     public void LoadLevel(bool restart)
     {
+        gameState = GameState.idle;
         StartCoroutine(LoadingCoroutine(restart));
     }
 
@@ -78,10 +75,5 @@ public class GameManager : MonoBehaviour
     public void ExitGame()
     {
         Application.Quit();
-    }
-
-    public void StartNewGame()
-    {
-        
     }
 }

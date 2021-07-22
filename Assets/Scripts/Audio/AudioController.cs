@@ -34,9 +34,10 @@ public class AudioController : MonoBehaviour
         }
     }
 
+    //loading saved data
     public void SetupSources()
     {
-        if (SaveController.currentSaveData.music)
+        if (FirebaseController.Instance.Music)
         {
             musicSource.volume = 1f;
         }
@@ -44,7 +45,7 @@ public class AudioController : MonoBehaviour
         {
             musicSource.volume = 0f;
         }
-        if (SaveController.currentSaveData.sfx)
+        if (FirebaseController.Instance.Sfx)
         {
             sfxAudioSource.volume = 1f;
         }
@@ -54,11 +55,11 @@ public class AudioController : MonoBehaviour
         }
     }
 
+    //enable music
     public void EnableMusic()
     {
         musicSource.volume = 1f;
-        SaveController.currentSaveData.music = true;
-        SaveController.WriteSaveData();
+        FirebaseController.Instance.Music = true;
         foreach (AudioPlayer ap in activeAudioPlayersList)
         {
             if (ap.audioType == SoundType.music)
@@ -68,11 +69,11 @@ public class AudioController : MonoBehaviour
         }
     }
 
+    //disable music
     public void DisableMusic()
     {
         musicSource.volume = 0f;
-        SaveController.currentSaveData.music = false;
-        SaveController.WriteSaveData();
+        FirebaseController.Instance.Music = false;
         foreach (AudioPlayer ap in activeAudioPlayersList)
         {
             if (ap.audioType == SoundType.music)
@@ -82,15 +83,15 @@ public class AudioController : MonoBehaviour
         }
     }
 
+    //toggle music
     public void ToggleMusic()
     {
-        bool newState = !SaveController.currentSaveData.music;
+        bool newState = !FirebaseController.Instance.Music;
         if (newState)
             musicSource.volume = 1f;
         else
             musicSource.volume = 0f;
-        SaveController.currentSaveData.music = newState;
-        SaveController.WriteSaveData();
+        FirebaseController.Instance.Music = newState;
         foreach (AudioPlayer ap in activeAudioPlayersList)
         {
             if (ap.audioType == SoundType.music)
@@ -103,11 +104,11 @@ public class AudioController : MonoBehaviour
         }
     }
 
+    //enable sfx
     public void EnableSFX()
     {
         sfxAudioSource.volume = 1f;
-        SaveController.currentSaveData.sfx = true;
-        SaveController.WriteSaveData();
+        FirebaseController.Instance.Sfx = true;
         foreach (AudioPlayer ap in activeAudioPlayersList)
         {
             if (ap.audioType == SoundType.sfx)
@@ -117,11 +118,11 @@ public class AudioController : MonoBehaviour
         }
     }
 
+    //disable music
     public void DisableSFX()
     {
         sfxAudioSource.volume = 0f;
-        SaveController.currentSaveData.sfx = false;
-        SaveController.WriteSaveData();
+        FirebaseController.Instance.Sfx = false;
         foreach (AudioPlayer ap in activeAudioPlayersList)
         {
             if (ap.audioType == SoundType.sfx)
@@ -131,9 +132,10 @@ public class AudioController : MonoBehaviour
         }
     }
 
+    //toggle sfx
     public void ToggleSFX()
     {
-        bool newState = !SaveController.currentSaveData.sfx;
+        bool newState = !FirebaseController.Instance.Sfx;
         if (newState)
         {
             sfxAudioSource.volume = 1f;
@@ -142,8 +144,7 @@ public class AudioController : MonoBehaviour
         {
             sfxAudioSource.volume = 0f;
         }
-        SaveController.currentSaveData.sfx = newState;
-        SaveController.WriteSaveData();
+        FirebaseController.Instance.Sfx = newState;
         foreach (AudioPlayer ap in activeAudioPlayersList)
         {
             if (ap.audioType == SoundType.sfx)
@@ -156,35 +157,40 @@ public class AudioController : MonoBehaviour
         }
     }
 
+    //play win
     public void PlayWin()
     {
-        if (SaveController.currentSaveData.sfx && sfxAudioSource && winClip)
+        if (FirebaseController.Instance.Sfx && sfxAudioSource && winClip)
         {
             sfxAudioSource.clip = winClip;
             sfxAudioSource.Play();
         }
     }
 
-    public void PlayLose(string tag)
+    //play lose
+    public void PlayLose()
     {
-        if (SaveController.currentSaveData.sfx && sfxAudioSource)
+        if (FirebaseController.Instance.Sfx && sfxAudioSource)
         {
             sfxAudioSource.clip = loseClip;
             sfxAudioSource.Play();
         }
     }
 
+    //adding audioplayer to active audioplayers list
     public void AddAudioPlayer(AudioPlayer ap)
     {
         if (!activeAudioPlayersList.Contains(ap))
             activeAudioPlayersList.Add(ap);
     }
 
+    //removing audioplayer from active audioplayers list
     public void RemoveAudioPlayer(AudioPlayer ap)
     {
         activeAudioPlayersList.Remove(ap);
     }
 
+    //pausing all audio sources
     public void PauseAllSources()
     {
         musicSource.Pause();
@@ -198,6 +204,7 @@ public class AudioController : MonoBehaviour
         }
     }
 
+    //unpausing all audio sources
     public void UnPauseAllSources()
     {
         musicSource.UnPause();

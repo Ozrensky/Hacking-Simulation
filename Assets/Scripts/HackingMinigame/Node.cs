@@ -7,6 +7,7 @@ public class Node : MonoBehaviour
 {
     public enum Type { start, treasure, firewall, data, spam }
     public enum State { locked, unlocked, hacked}
+    [Header("Prefab Objects")]
     public GameObject startNodeObject;
     public GameObject treasureNodeObject;
     public GameObject firewallNodeObject;
@@ -25,13 +26,13 @@ public class Node : MonoBehaviour
     [SerializeField] UnityEngine.Events.UnityEvent onHackedEvent;
     [SerializeField] UnityEngine.Events.UnityEvent onResetEvent;
 
-    public List<LineRenderer> hackLrs = new List<LineRenderer>();
-    public List<Connection> connections = new List<Connection>();
-    public Type type;
-    public State state = State.locked;
-    public bool isTrap = false;
-    public int hackingDifficulty = 1;
-    public int chanceToTriggerTracer = 10;
+    [HideInInspector] public List<LineRenderer> hackLrs = new List<LineRenderer>();
+    [HideInInspector] public List<Connection> connections = new List<Connection>();
+    [HideInInspector] public Type type;
+    [HideInInspector] public State state = State.locked;
+    [HideInInspector] public bool isTrap = false;
+    [HideInInspector] public int hackingDifficulty = 1;
+    [HideInInspector]public int chanceToTriggerTracer = 10;
 
     [HideInInspector] public Transform trans;
     [HideInInspector] public SpriteRenderer sRenderer;
@@ -47,6 +48,7 @@ public class Node : MonoBehaviour
         public LineRenderer lineRenderer;
     }
 
+    //resets node
     public void Reset()
     {
         LockNode();
@@ -81,6 +83,7 @@ public class Node : MonoBehaviour
         }
     }
 
+    //randomizes node's difficulty
     public void RandomizeDifficulty()
     {
         float minDiff = HackingController.Instance.difficultyRange.x;
@@ -94,8 +97,11 @@ public class Node : MonoBehaviour
         trans = transform;
         sRenderer = GetComponent<SpriteRenderer>();
         coll = GetComponent<Collider2D>();
+        HackingController.OnLost += StopCoroutines;
+        HackingController.OnWon += StopCoroutines;
     }
 
+    //returns connection to a given node
     public Connection FindConnection(Node node)
     {
         foreach (Connection c in connections)
@@ -112,6 +118,7 @@ public class Node : MonoBehaviour
             coll.enabled = value;
     }
 
+    //returns connection lrs
     public List<LineRenderer> GetLineRenderers()
     {
         List<LineRenderer> lr = new List<LineRenderer>();
@@ -122,11 +129,13 @@ public class Node : MonoBehaviour
         return lr;
     }
 
+    //returns hack lrs
     public List<LineRenderer> GetHackLineRenderers()
     {
         return hackLrs;
     }
 
+    //sets up node
     public void SetupNode()
     {
         switch (type)
@@ -154,14 +163,13 @@ public class Node : MonoBehaviour
             hackingDifficulty = 0;
     }
 
-    public void TriggerTracer()
+    //triggers tracers
+    public void TriggerTracers()
     {
-        if (!HackingController.tracerActive)
-        {
-            gameObject.AddComponent<TracerController>().CalculateTracerPath(this, new TracerController.Path());
-        }
+        HackingController.Instance.ActivateTracers();
     }
 
+    //removes connection and returns it's lr
     public void RemoveConnection(Node connectionNode)
     {
         for (int i = 0; i < connections.Count; i++)
@@ -175,6 +183,7 @@ public class Node : MonoBehaviour
         }
     }
 
+    //removes connection by given lr
     public void RemoveConnection(LineRenderer lr)
     {
         for (int i = 0; i < connections.Count; i++)
@@ -187,6 +196,7 @@ public class Node : MonoBehaviour
         }
     }
 
+    //removes disabled connections
     public void RemoveEmptyConnections()
     {
         for (int i = 0; i < connections.Count; i++)
@@ -199,6 +209,7 @@ public class Node : MonoBehaviour
         }
     }
 
+    //sets locked state
     public void LockNode()
     {
         state = State.locked;
@@ -206,39 +217,72 @@ public class Node : MonoBehaviour
         onLockEvent.Invoke();
     }
 
+    //instant hack
+    public void Nuke()
+    {
+        if (!IsBeingHacked())
+        {
+            FirebaseController.Instance.NukeCount--;
+            UIManager.Instance.UpdateLevelUI();
+            hackCoroutine = StartCoroutine(HackCoroutine(true));
+        }
+    }
+
+    //hack
     public void HackNode()
     {
-        if (state == State.unlocked)
+        if (state == State.unlocked && !IsBeingHacked())
         {
             HackingController.hackingActive = true;
             hackCoroutine = StartCoroutine(HackCoroutine());
         }
     }
 
-    public void Nuke()
+    //tracer hack
+    public void TracerHack(Node previousNode)
     {
-        SaveController.currentSaveData.nukeCount--;
-        SaveController.WriteSaveData();
-        UIManager.Instance.UpdateLevelUI();
-        hackCoroutine = StartCoroutine(HackCoroutine(true));
+        if (type == Type.start)
+        {
+            hackCoroutine = StartCoroutine(HackCoroutine(true, previousNode));
+        }
+        else
+        {
+            hackCoroutine = StartCoroutine(HackCoroutine(false, previousNode));
+        }
     }
 
-    IEnumerator HackCoroutine(bool isInstant = false)
+    //hack coroutine for regular hack, nuke (instant) hack and tracer hack
+    IEnumerator HackCoroutine(bool isInstant = false, Node previousNode = null)
     {
+        float timeMultiplier = 1f;
+        //setting up hack line
         LineRenderer lr = HackingController.Instance.GetLineRenderer();
-        lr.startColor = Color.green;
-        lr.endColor = Color.green;
-        lr.SetPosition(0, GetNeighbourHackedNode().trans.position);
+        if (previousNode != null)
+        {
+            lr.startColor = Color.red;
+            lr.endColor = Color.red;
+            lr.SetPosition(0, previousNode.trans.position);
+            lr.sortingOrder = -1;
+            if (HackingController.spamActive)
+                timeMultiplier += HackingController.Instance.settings.spamDecrease / 100;
+        }
+        else
+        {
+            lr.startColor = Color.green;
+            lr.endColor = Color.green;
+            lr.SetPosition(0, GetNeighbourHackedNode().trans.position);
+            lr.sortingOrder = -2;
+        }
         Vector3 lerpPosition = trans.position;
-        lr.sortingOrder = -1;
         lr.enabled = true;
         hackLrs.Add(lr);
         if (!isInstant)
         {
             lr.SetPosition(1, lr.GetPosition(0));
             hackingObject.SetActive(true);
+            //lerping hack line
             float elapsed = 0;
-            float duration = hackingDifficulty * HackingController.Instance.baseHackTime;
+            float duration = hackingDifficulty * HackingController.Instance.baseHackTime * timeMultiplier;
             {
                 while (elapsed < duration)
                 {
@@ -255,24 +299,54 @@ public class Node : MonoBehaviour
         {
             lr.SetPosition(1, lerpPosition);
         }
-        SetColor(hackedColor);
-        state = State.hacked;
-        onHackedEvent.Invoke();
-        SaveController.currentSaveData.xpAmount += hackingDifficulty * 100;
-        SaveController.WriteSaveData();
-        UIManager.Instance.UpdateLevelUI();
-        UnlockConnectedNodes();
-        if (type == Type.treasure)
+        if (previousNode == null)
         {
-            HackingController.Instance.TreasureHacked();
+            //setting hacked state and adding hack reward, treasure reward etc.
+            SetColor(hackedColor);
+            state = State.hacked;
+            onHackedEvent.Invoke();
+            FirebaseController.Instance.XpAmount += hackingDifficulty * 100;
+            UIManager.Instance.UpdateLevelUI();
+            UnlockConnectedNodes();
+            if (type == Type.treasure)
+            {
+                HackingController.Instance.TreasureHacked();
+            }
+            else if (type == Type.spam)
+            {
+                HackingController.Instance.RandomizeNodesDifficulties();
+                HackingController.spamActive = true;
+                UIManager.Instance.UpdateLevelUI();
+                TriggerTracers();
+            }
+            else if (type == Type.firewall && !HackingController.tracersActive)
+            {
+                HackingController.Instance.FirewallHacked();
+            }
+            //calculate if a node is going to trigger tracers
+            if (type != Type.spam && !HackingController.tracersActive)
+                IsTriggeringTracers();
         }
-        else if (type == Type.spam)
+        //if tracer is hacking and this node is start node, trigger lose
+        else if (type == Type.start)
         {
-            HackingController.Instance.RandomizeNodesDifficulties();
+            HackingController.Instance.MinigameFailed();
         }
+
         hackCoroutine = null;
     }
 
+    //calculate if a node is going to trigger tracers
+    void IsTriggeringTracers()
+    {
+        int random = Random.Range(1, 101);
+        if (random > 0 && random < chanceToTriggerTracer)
+        {
+            TriggerTracers();
+        }
+    }
+
+    //gets random hacked neighbour
     Node GetNeighbourHackedNode()
     {
         foreach (Connection c in connections)
@@ -284,6 +358,7 @@ public class Node : MonoBehaviour
         return null;
     }
 
+    //sets unlocked state
     public void UnlockNode()
     {
         state = State.unlocked;
@@ -291,12 +366,14 @@ public class Node : MonoBehaviour
         onUnlockEvent.Invoke();
     }
 
+    //sets a trap
     public void TrapNode()
     {
         isTrap = true;
         trapObject.SetActive(true);
     }
 
+    //removes a trap
     public void ResetTrap()
     {
         isTrap = false;
@@ -311,6 +388,7 @@ public class Node : MonoBehaviour
         }
     }
 
+    //shows action panel on node click or disables it
     public void OnClick()
     {
         if (state == State.unlocked && state != State.hacked && !HackingController.hackingActive && type != Type.start)
@@ -324,17 +402,32 @@ public class Node : MonoBehaviour
         }
     }
 
+    //toggles selection indicator
     public void ToggleSelection(bool value)
     {
         selectionIndicator.enabled = value;
     }
 
+    //unlocks connected nodes
     public void UnlockConnectedNodes()
     {
         foreach (Connection connection in connections)
         {
             if (connection.connectedNode.state == State.locked)
                 connection.connectedNode.UnlockNode();
+        }
+    }
+
+    //returns if node is currently being hacked
+    public bool IsBeingHacked()
+    {
+        if (hackCoroutine != null)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
         }
     }
 }

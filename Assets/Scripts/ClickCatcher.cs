@@ -7,6 +7,7 @@ public class ClickCatcher : MonoBehaviour
 {
     bool mousePressed = false;
     RaycastHit2D hit;
+
     void Update()
     {
         if (GameManager.gameState == GameManager.GameState.play)
@@ -35,6 +36,7 @@ public class ClickCatcher : MonoBehaviour
         }
     }
 
+    //checks if pointer is over ui element
     bool HittingUI()
     {
         PointerEventData eventDataCurrentPosition = new PointerEventData(EventSystem.current);
